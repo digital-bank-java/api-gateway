@@ -55,19 +55,30 @@ jobs:
 
       - name: Smoke test container
         run: |
-          docker run --rm --detach \
+          docker run --detach \
             --name digital-bank-java-api-gateway-ci \
             --publish 8080:8080 \
+            --env SPRING_CLOUD_CONFIG_ENABLED=false \
             digital-bank-java/api-gateway:ci
 
           for i in $(seq 1 60); do
             if curl --fail --silent http://localhost:8080/actuator/health/liveness; then
+              docker logs digital-bank-java-api-gateway-ci
               docker stop digital-bank-java-api-gateway-ci
+              docker rm digital-bank-java-api-gateway-ci
               exit 0
             fi
+
+            if ! docker ps --filter name=digital-bank-java-api-gateway-ci --format '{{.Names}}' | grep -q '^digital-bank-java-api-gateway-ci$'; then
+              docker logs digital-bank-java-api-gateway-ci
+              docker rm digital-bank-java-api-gateway-ci
+              exit 1
+            fi
+
             sleep 2
           done
 
           docker logs digital-bank-java-api-gateway-ci
-          docker stop digital-bank-java-api-gateway-ci
+          docker stop digital-bank-java-api-gateway-ci || true
+          docker rm digital-bank-java-api-gateway-ci || true
           exit 1
