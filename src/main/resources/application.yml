@@ -2,6 +2,12 @@ spring:
   application:
     name: api-gateway
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 management:
   endpoints:
     web:
