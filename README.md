@@ -48,7 +48,7 @@ Health:
 curl --fail http://localhost:8080/actuator/health
 ```
 
-Start with Config Server when you want route configuration loaded from `platform-config`:
+Start with Config Server when you want route configuration loaded from `config-repo`:
 
 ```bash
 SPRING_CONFIG_IMPORT=configserver:http://localhost:8888 \
