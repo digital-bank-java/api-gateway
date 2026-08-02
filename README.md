@@ -59,7 +59,7 @@ SPRING_PROFILES_ACTIVE=local \
 ## Build Image
 
 ```bash
-docker build --tag digital-bank-java/api-gateway:0.0.1 .
+docker build --tag digital-bank-java/api-gateway:0.0.2 .
 ```
 
 ## Deploy To Local SIT
