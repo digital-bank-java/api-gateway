@@ -35,10 +35,14 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Lint chart
-        run: helm lint helm --values helm/values-sit.yaml
+        run: helm lint helm --strict --values helm/values-sit.yaml
 
       - name: Render chart
-        run: helm template api-gateway helm --values helm/values-sit.yaml --namespace digital-bank-sit
+        run: |
+          helm template api-gateway helm \
+            --namespace digital-bank-sit \
+            --values helm/values-sit.yaml \
+            --set image.tag=test
 
   container-smoke-test:
     name: Container build and smoke test
