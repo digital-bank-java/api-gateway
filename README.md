@@ -34,9 +34,11 @@ This is a Kubernetes Service DNS name, not a Pod IP.
 ./mvnw test
 ```
 
-## Run Locally
+## Run From A Workstation
 
-Start without Config Server when you only need local health checks:
+SIT is the supported lowest runtime environment. The API Gateway must be deployed in SIT for full routing verification because its `sit` configuration contains Kubernetes Service DNS names such as `http://customer-service:8081`; those names are not resolvable by a JVM on the workstation.
+
+You can start an unconfigured workstation instance only for isolated health or breakpoint checks:
 
 ```bash
 ./mvnw spring-boot:run
@@ -48,13 +50,7 @@ Health:
 curl --fail http://localhost:8080/actuator/health
 ```
 
-Start with Config Server when you want route configuration loaded from `config-repo`:
-
-```bash
-SPRING_CONFIG_IMPORT=configserver:http://localhost:8888 \
-SPRING_PROFILES_ACTIVE=local \
-./mvnw spring-boot:run
-```
+For integrated gateway routing, deploy the Gateway in SIT and use the API Gateway port-forward shown below. A workstation Gateway process is not a Kubernetes Service endpoint.
 
 ## Build Image
 
