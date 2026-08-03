@@ -11,7 +11,10 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 		"spring.cloud.config.enabled=false",
 		"spring.cloud.gateway.server.webflux.routes[0].id=customer-service-health",
 		"spring.cloud.gateway.server.webflux.routes[0].uri=forward:/actuator/health",
-		"spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/gateway-test/customer-health" })
+		"spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/gateway-test/customer-health",
+		"spring.cloud.gateway.server.webflux.routes[1].id=unavailable-service-docs",
+		"spring.cloud.gateway.server.webflux.routes[1].uri=http://127.0.0.1:1",
+		"spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/gateway-test/unavailable-docs" })
 class ApiGatewayRouteIntegrationTests {
 
 	@LocalServerPort
@@ -38,6 +41,21 @@ class ApiGatewayRouteIntegrationTests {
 	void routeForwardsToConfiguredDownstreamService() {
 		client.get()
 				.uri("/gateway-test/customer-health")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.status").isEqualTo("UP");
+	}
+
+	@Test
+	void unavailableDownstreamDoesNotTakeDownGateway() {
+		client.get()
+				.uri("/gateway-test/unavailable-docs")
+				.exchange()
+				.expectStatus().is5xxServerError();
+
+		client.get()
+				.uri("/actuator/health")
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()
