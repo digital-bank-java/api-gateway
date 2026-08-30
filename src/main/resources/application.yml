@@ -6,10 +6,6 @@ spring:
       server:
         webflux:
           default-filters:
-            - name: CircuitBreaker
-              args:
-                name: gatewayDownstream
-                fallbackUri: forward:/internal/gateway-fallback
             - name: Retry
               args:
                 retries: ${gateway.resilience.retry.retries:2}
