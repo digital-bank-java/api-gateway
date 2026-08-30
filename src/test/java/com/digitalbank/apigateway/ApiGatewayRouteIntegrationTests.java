@@ -2,9 +2,13 @@ package com.digitalbank.apigateway;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.env.Environment;
 import org.springframework.test.web.reactive.server.WebTestClient;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
 		"spring.config.import=",
@@ -19,6 +23,9 @@ class ApiGatewayRouteIntegrationTests {
 
 	@LocalServerPort
 	private int port;
+
+	@Autowired
+	private Environment environment;
 
 	private WebTestClient client;
 
@@ -52,7 +59,11 @@ class ApiGatewayRouteIntegrationTests {
 		client.get()
 				.uri("/gateway-test/unavailable-docs")
 				.exchange()
-				.expectStatus().is5xxServerError();
+				.expectStatus().isEqualTo(503)
+				.expectHeader().contentType("application/problem+json")
+				.expectBody()
+				.jsonPath("$.status").isEqualTo(503)
+				.jsonPath("$.title").isEqualTo("Downstream service unavailable");
 
 		client.get()
 				.uri("/actuator/health")
@@ -60,5 +71,11 @@ class ApiGatewayRouteIntegrationTests {
 				.expectStatus().isOk()
 				.expectBody()
 				.jsonPath("$.status").isEqualTo("UP");
+	}
+
+	@Test
+	void retryFilterOnlyTargetsSafeGetRequests() {
+		assertEquals("GET", environment
+				.getProperty("spring.cloud.gateway.server.webflux.default-filters[1].args.methods"));
 	}
 }

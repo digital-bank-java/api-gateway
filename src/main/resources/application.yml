@@ -1,6 +1,37 @@
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          default-filters:
+            - name: CircuitBreaker
+              args:
+                name: gatewayDownstream
+                fallbackUri: forward:/internal/gateway-fallback
+            - name: Retry
+              args:
+                retries: ${gateway.resilience.retry.retries:2}
+                methods: GET
+                series: SERVER_ERROR
+
+gateway:
+  resilience:
+    retry:
+      retries: 2
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      gatewayDownstream:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
 
 springdoc:
   api-docs:
