@@ -19,9 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 		"spring.cloud.gateway.server.webflux.routes[1].id=unavailable-service-docs",
 		"spring.cloud.gateway.server.webflux.routes[1].uri=http://127.0.0.1:1",
 		"spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/gateway-test/unavailable-docs",
-		"resilience4j.circuitbreaker.instances.gatewayDownstream.minimumNumberOfCalls=1",
-		"resilience4j.circuitbreaker.instances.gatewayDownstream.slidingWindowSize=1",
-		"resilience4j.circuitbreaker.instances.gatewayDownstream.waitDurationInOpenState=1h" })
+		"resilience4j.circuitbreaker.configs.gatewayDownstream.minimumNumberOfCalls=1",
+		"resilience4j.circuitbreaker.configs.gatewayDownstream.slidingWindowSize=1",
+		"resilience4j.circuitbreaker.configs.gatewayDownstream.waitDurationInOpenState=1h",
+		"gateway.resilience.timeout.connect-timeout=100",
+		"gateway.resilience.timeout.response-timeout=100ms" })
 class ApiGatewayRouteIntegrationTests {
 
 	@LocalServerPort
