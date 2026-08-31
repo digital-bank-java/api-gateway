@@ -23,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 		"resilience4j.circuitbreaker.configs.gatewayDownstream.slidingWindowSize=1",
 		"resilience4j.circuitbreaker.configs.gatewayDownstream.waitDurationInOpenState=1h",
 		"gateway.resilience.timeout.connect-timeout=100",
-		"gateway.resilience.timeout.response-timeout=100ms" })
+		"gateway.resilience.timeout.response-timeout=100ms",
+		"management.health.redis.enabled=false" })
 class ApiGatewayRouteIntegrationTests {
 
 	@LocalServerPort

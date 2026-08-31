@@ -7,7 +7,8 @@ Spring Cloud Gateway entry point for the Digital Bank Java platform.
 - Provide the platform HTTP entry point for client-facing API traffic.
 - Route requests to internal services through Kubernetes Service DNS names.
 - Keep downstream services private inside the cluster for normal manual testing.
-- Host future cross-cutting gateway policies such as rate limits, auth enforcement, and correlation propagation.
+- Host cross-cutting gateway policies such as route-level rate limits and downstream resilience.
+- Leave authentication, authorization, and correlation propagation to their planned security slices.
 
 ## Non-Responsibilities
 
@@ -64,7 +65,7 @@ For integrated gateway routing, deploy the Gateway in SIT and use the API Gatewa
 ## Build Image
 
 ```bash
-docker build --tag digital-bank-java/api-gateway:0.0.2 .
+docker build --tag digital-bank-java/api-gateway:0.0.3 .
 ```
 
 The image runs as numeric non-root user and group `10001:10001`.
@@ -113,9 +114,19 @@ The centralized internal API documentation UI is available at:
 http://localhost:8080/admin/docs/swagger-ui.html
 ```
 
+## Redis-backed Rate Limiting
+
+Public customer and account routes in SIT use the shared Redis service for route-level token-bucket limits. The current SIT policy allows 10 requested tokens per second with a burst capacity of 20 and one token per request. Requests that exceed the available bucket receive `429 Too Many Requests`.
+
+The policy is stored in `config-repo/api-gateway/api-gateway-sit.yml`, so limits can be tuned without rebuilding the gateway image. A gateway rollout is required after changing route configuration because route definitions are loaded during startup.
+
+The current unauthenticated SIT key is the request remote IP address. Port-forwarded workstation requests therefore share one bucket. Once gateway authentication exists, the key should be changed to a trusted authenticated subject or tenant identity. Do not use arbitrary client-supplied headers as production rate-limit keys.
+
+Redis is a shared coordination dependency: all gateway replicas must use the same Redis service for consistent limits. Local SIT uses the in-cluster `redis` Service; UAT and production should use a managed Redis-compatible service with authentication, encryption, replication, failover, backups, and monitoring.
+
 ## Security And Environment Promotion
 
-The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking and safe-read retries are implemented as cross-cutting availability controls. Authentication, authorization, Redis-backed rate limiting, and correlation propagation remain planned capabilities.
+The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking, safe-read retries, and Redis-backed rate limiting are implemented as cross-cutting availability controls. Authentication, authorization, and correlation propagation remain planned capabilities.
 
 ## Downstream Resilience
 
