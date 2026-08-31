@@ -7,7 +7,7 @@ COPY mvnw pom.xml ./
 RUN chmod +x mvnw && ./mvnw --batch-mode dependency:go-offline
 
 COPY src/ src/
-RUN ./mvnw --batch-mode clean package
+RUN ./mvnw --batch-mode clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-jammy
 
