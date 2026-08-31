@@ -2,19 +2,22 @@ package com.digitalbank.apigateway;
 
 import static java.util.Map.of;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.cloud.gateway.event.FilterArgsEvent;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
-import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import reactor.core.publisher.Mono;
@@ -27,20 +30,38 @@ import reactor.core.publisher.Mono;
 		"spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/gateway-test/rate-limited-health",
 		"spring.cloud.gateway.server.webflux.routes[0].filters[0]=RequestRateLimiter",
 		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.key-resolver=#{@clientAddressKeyResolver}",
-		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.redis-rate-limiter.replenishRate=1",
-		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.redis-rate-limiter.burstCapacity=1",
-		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.redis-rate-limiter.requestedTokens=1",
+		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.redis-rate-limiter.replenish-rate=1",
+		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.redis-rate-limiter.burst-capacity=1",
+		"spring.cloud.gateway.server.webflux.routes[0].filters[0].args.redis-rate-limiter.requested-tokens=1",
 		"management.health.redis.enabled=false" })
 @Import(GatewayRateLimitingIntegrationTests.TestRateLimitingConfiguration.class)
+@Testcontainers
 class GatewayRateLimitingIntegrationTests {
+
+	@Container
+	static final GenericContainer<?> redis = new GenericContainer<>("redis:7.4-alpine")
+			.withExposedPorts(6379);
+
+	@DynamicPropertySource
+	static void redisProperties(DynamicPropertyRegistry registry) {
+		registry.add("spring.data.redis.host", redis::getHost);
+		registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+	}
 
 	@LocalServerPort
 	private int port;
+
+	@Autowired
+	private ApplicationEventPublisher applicationEventPublisher;
 
 	private WebTestClient client;
 
 	@BeforeEach
 	void setUp() {
+		applicationEventPublisher.publishEvent(new FilterArgsEvent(this, "rate-limited-health", of(
+				"redis-rate-limiter.replenishRate", "1",
+				"redis-rate-limiter.burstCapacity", "1",
+				"redis-rate-limiter.requestedTokens", "1")));
 		client = WebTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
 	}
 
@@ -63,27 +84,6 @@ class GatewayRateLimitingIntegrationTests {
 		@Bean
 		KeyResolver clientAddressKeyResolver() {
 			return exchange -> Mono.just("test-client");
-		}
-
-		@Bean
-		@Primary
-		RateLimiter<RedisRateLimiter.Config> testRateLimiter() {
-			return new DeterministicRateLimiter();
-		}
-	}
-
-	private static final class DeterministicRateLimiter extends RedisRateLimiter {
-
-		private final AtomicInteger remainingRequests = new AtomicInteger(1);
-
-		private DeterministicRateLimiter() {
-			super(1, 1);
-		}
-
-		@Override
-		public Mono<Response> isAllowed(String routeId, String id) {
-			boolean allowed = remainingRequests.getAndUpdate(value -> Math.max(0, value - 1)) > 0;
-			return Mono.just(new Response(allowed, of()));
 		}
 	}
 }
