@@ -92,6 +92,14 @@ class ApiGatewayRouteIntegrationTests {
 	}
 
 	@Test
+	void internalFallbackPathIsNotAnExposedGatewayEndpoint() {
+		client.get()
+				.uri("/internal/gateway-fallback")
+				.exchange()
+				.expectStatus().isNotFound();
+	}
+
+	@Test
 	void retryFilterOnlyTargetsSafeGetRequests() {
 		assertEquals("GET", environment
 				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.methods"));

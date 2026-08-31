@@ -22,7 +22,6 @@ import reactor.core.publisher.Mono;
 @Component
 final class RouteCircuitBreakerGlobalFilter implements GlobalFilter, Ordered {
 
-	private static final String FALLBACK_PATH = "/internal/gateway-fallback";
 	private static final String CONFIGURATION_NAME = "gatewayDownstream";
 	private static final String BREAKER_NAME_PREFIX = "gatewayDownstream-";
 	private static final String FALLBACK_BODY = "{\"type\":\"https://digital-bank-java.local/problems/"
@@ -41,7 +40,7 @@ final class RouteCircuitBreakerGlobalFilter implements GlobalFilter, Ordered {
 	@Override
 	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 		Route route = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-		if (route == null || FALLBACK_PATH.equals(exchange.getRequest().getPath().value())) {
+		if (route == null) {
 			return chain.filter(exchange);
 		}
 
