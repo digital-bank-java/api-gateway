@@ -115,7 +115,15 @@ http://localhost:8080/admin/docs/swagger-ui.html
 
 ## Security And Environment Promotion
 
-The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Authentication, authorization, rate limiting, circuit breaking, and correlation propagation are planned cross-cutting capabilities; they are not implemented by this bootstrap route layer.
+The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking and safe-read retries are implemented as cross-cutting availability controls. Authentication, authorization, Redis-backed rate limiting, and correlation propagation remain planned capabilities.
+
+## Downstream Resilience
+
+The gateway applies a Resilience4j circuit breaker to downstream routes and returns a stable `503 Service Unavailable` Problem Details response when a downstream service cannot be reached. The fallback does not expose downstream hostnames or exception details.
+
+The built-in Gateway retry filter is restricted to `GET` requests and server-error responses. POST, PUT, PATCH, and DELETE requests are deliberately excluded because retrying a mutation can duplicate a business operation. Retry count and circuit-breaker thresholds are property-driven and can be overridden through the environment-specific Config Server repository later.
+
+The retry and circuit-breaker policies are availability controls, not replacements for idempotency keys, transactional guarantees, or service-level authorization.
 
 The same application artifact is promoted through `sit`, `uat`, and `prod`. Environment-specific routes and infrastructure addresses are supplied through Config Server and deployment configuration. Do not commit credentials, tokens, or production endpoints.
 

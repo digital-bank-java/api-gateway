@@ -2,9 +2,13 @@ package com.digitalbank.apigateway;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.env.Environment;
 import org.springframework.test.web.reactive.server.WebTestClient;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
 		"spring.config.import=",
@@ -14,11 +18,19 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 		"spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/gateway-test/customer-health",
 		"spring.cloud.gateway.server.webflux.routes[1].id=unavailable-service-docs",
 		"spring.cloud.gateway.server.webflux.routes[1].uri=http://127.0.0.1:1",
-		"spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/gateway-test/unavailable-docs" })
+		"spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/gateway-test/unavailable-docs",
+		"resilience4j.circuitbreaker.configs.gatewayDownstream.minimumNumberOfCalls=1",
+		"resilience4j.circuitbreaker.configs.gatewayDownstream.slidingWindowSize=1",
+		"resilience4j.circuitbreaker.configs.gatewayDownstream.waitDurationInOpenState=1h",
+		"gateway.resilience.timeout.connect-timeout=100",
+		"gateway.resilience.timeout.response-timeout=100ms" })
 class ApiGatewayRouteIntegrationTests {
 
 	@LocalServerPort
 	private int port;
+
+	@Autowired
+	private Environment environment;
 
 	private WebTestClient client;
 
@@ -52,7 +64,11 @@ class ApiGatewayRouteIntegrationTests {
 		client.get()
 				.uri("/gateway-test/unavailable-docs")
 				.exchange()
-				.expectStatus().is5xxServerError();
+				.expectStatus().isEqualTo(503)
+				.expectHeader().contentType("application/problem+json")
+				.expectBody()
+				.jsonPath("$.status").isEqualTo(503)
+				.jsonPath("$.title").isEqualTo("Downstream service unavailable");
 
 		client.get()
 				.uri("/actuator/health")
@@ -60,5 +76,34 @@ class ApiGatewayRouteIntegrationTests {
 				.expectStatus().isOk()
 				.expectBody()
 				.jsonPath("$.status").isEqualTo("UP");
+	}
+
+	@Test
+	void unavailableDownstreamDoesNotTripHealthyRoute() {
+		client.get()
+				.uri("/gateway-test/unavailable-docs")
+				.exchange()
+				.expectStatus().isEqualTo(503);
+
+		client.get()
+				.uri("/gateway-test/customer-health")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.status").isEqualTo("UP");
+	}
+
+	@Test
+	void internalFallbackPathIsNotAnExposedGatewayEndpoint() {
+		client.get()
+				.uri("/internal/gateway-fallback")
+				.exchange()
+				.expectStatus().isNotFound();
+	}
+
+	@Test
+	void retryFilterOnlyTargetsSafeGetRequests() {
+		assertEquals("GET", environment
+				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.methods"));
 	}
 }

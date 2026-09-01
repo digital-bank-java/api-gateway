@@ -1,6 +1,47 @@
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          default-filters:
+            - name: Retry
+              args:
+                retries: ${gateway.resilience.retry.retries:2}
+                methods: GET
+                series: SERVER_ERROR
+          httpclient:
+            connect-timeout: ${gateway.resilience.timeout.connect-timeout:1000}
+            response-timeout: ${gateway.resilience.timeout.response-timeout:2s}
+
+gateway:
+  resilience:
+    retry:
+      retries: 2
+    timeout:
+      connect-timeout: 1000
+      response-timeout: 2s
+    circuit-breaker:
+      sliding-window-type: COUNT_BASED
+      sliding-window-size: 20
+      minimum-number-of-calls: 5
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 10s
+      permitted-number-of-calls-in-half-open-state: 2
+      automatic-transition-from-open-to-half-open-enabled: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      gatewayDownstream:
+        slidingWindowType: ${gateway.resilience.circuit-breaker.sliding-window-type:COUNT_BASED}
+        slidingWindowSize: ${gateway.resilience.circuit-breaker.sliding-window-size:20}
+        minimumNumberOfCalls: ${gateway.resilience.circuit-breaker.minimum-number-of-calls:5}
+        failureRateThreshold: ${gateway.resilience.circuit-breaker.failure-rate-threshold:50}
+        waitDurationInOpenState: ${gateway.resilience.circuit-breaker.wait-duration-in-open-state:10s}
+        permittedNumberOfCallsInHalfOpenState: ${gateway.resilience.circuit-breaker.permitted-number-of-calls-in-half-open-state:2}
+        automaticTransitionFromOpenToHalfOpenEnabled: ${gateway.resilience.circuit-breaker.automatic-transition-from-open-to-half-open-enabled:true}
 
 springdoc:
   api-docs:
