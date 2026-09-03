@@ -7,7 +7,8 @@ Spring Cloud Gateway entry point for the Digital Bank Java platform.
 - Provide the platform HTTP entry point for client-facing API traffic.
 - Route requests to internal services through Kubernetes Service DNS names.
 - Keep downstream services private inside the cluster for normal manual testing.
-- Host future cross-cutting gateway policies such as rate limits, auth enforcement, and correlation propagation.
+- Host cross-cutting gateway policies such as route-level rate limits and downstream resilience.
+- Leave authentication, authorization, and correlation propagation to their planned security slices.
 
 ## Non-Responsibilities
 
@@ -64,7 +65,7 @@ For integrated gateway routing, deploy the Gateway in SIT and use the API Gatewa
 ## Build Image
 
 ```bash
-docker build --tag digital-bank-java/api-gateway:0.0.2 .
+docker build --tag digital-bank-java/api-gateway:0.0.3 .
 ```
 
 The image runs as numeric non-root user and group `10001:10001`.
@@ -113,15 +114,27 @@ The centralized internal API documentation UI is available at:
 http://localhost:8080/admin/docs/swagger-ui.html
 ```
 
+## Redis-backed Rate Limiting
+
+Public customer and account routes in SIT use the shared Redis service for route-level token-bucket limits. The current SIT policy allows 10 requested tokens per second with a burst capacity of 20 and one token per request. Requests that exceed the available bucket receive `429 Too Many Requests`.
+
+The policy is stored in `config-repo/api-gateway/api-gateway-sit.yml`, so limits can be tuned without rebuilding the gateway image. A gateway rollout is required after changing route configuration because route definitions are loaded during startup.
+
+The current unauthenticated SIT key is the request client IP address. With no trusted proxies configured, the gateway uses the socket peer and ignores `X-Forwarded-For`, so a client cannot spoof its rate-limit identity by sending that header. When the gateway is placed behind an approved ingress or load balancer, configure its proxy IP addresses or CIDR ranges through `gateway.rate-limit.trusted-proxies`; only then will the gateway parse the forwarding chain, from right to left, and select the first untrusted address. Once gateway authentication exists, the key should be changed to a trusted authenticated subject or tenant identity. Do not use arbitrary client-supplied headers as production rate-limit keys.
+
+Redis is a shared coordination dependency: all gateway replicas must use the same Redis service for consistent limits. Local SIT uses the in-cluster `redis` Service; UAT and production should use a managed Redis-compatible service with authentication, encryption, replication, failover, backups, and monitoring.
+
+The gateway applies a fail-closed policy to Redis rate-limit errors. Spring Cloud Gateway's Redis limiter uses a remaining-token value of `-1` when its Redis script cannot complete; this gateway converts that sentinel into a denied decision instead of silently allowing traffic. Redis health, error rates, and resulting `429` responses must be monitored so an unavailable limiter is restored quickly. This policy is intentionally local/SIT-safe and should be reviewed with the production platform team before promotion.
+
 ## Security And Environment Promotion
 
-The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking and safe-read retries are implemented as cross-cutting availability controls. Authentication, authorization, Redis-backed rate limiting, and correlation propagation remain planned capabilities.
+The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking, safe-read retries, and Redis-backed rate limiting are implemented as cross-cutting availability controls. Authentication, authorization, and correlation propagation remain planned capabilities.
 
 ## Downstream Resilience
 
 The gateway applies a Resilience4j circuit breaker to downstream routes and returns a stable `503 Service Unavailable` Problem Details response when a downstream service cannot be reached. The fallback does not expose downstream hostnames or exception details.
 
-The built-in Gateway retry filter is restricted to `GET` requests and server-error responses. POST, PUT, PATCH, and DELETE requests are deliberately excluded because retrying a mutation can duplicate a business operation. Retry count and circuit-breaker thresholds are property-driven and can be overridden through the environment-specific Config Server repository later.
+The built-in Gateway retry filter is restricted to `GET`, `HEAD`, and `OPTIONS` requests and the explicit upstream statuses `500`, `502`, `503`, and `504`. It allows at most two retries with a bounded exponential backoff from 50 ms to 250 ms. POST, PUT, PATCH, and DELETE requests are deliberately excluded because retrying a mutation can duplicate a business operation. Retry count and circuit-breaker thresholds are property-driven and can be overridden through the environment-specific Config Server repository later.
 
 The retry and circuit-breaker policies are availability controls, not replacements for idempotency keys, transactional guarantees, or service-level authorization.
 

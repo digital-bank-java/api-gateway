@@ -23,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 		"resilience4j.circuitbreaker.configs.gatewayDownstream.slidingWindowSize=1",
 		"resilience4j.circuitbreaker.configs.gatewayDownstream.waitDurationInOpenState=1h",
 		"gateway.resilience.timeout.connect-timeout=100",
-		"gateway.resilience.timeout.response-timeout=100ms" })
+		"gateway.resilience.timeout.response-timeout=100ms",
+		"management.health.redis.enabled=false" })
 class ApiGatewayRouteIntegrationTests {
 
 	@LocalServerPort
@@ -103,7 +104,13 @@ class ApiGatewayRouteIntegrationTests {
 
 	@Test
 	void retryFilterOnlyTargetsSafeGetRequests() {
-		assertEquals("GET", environment
+		assertEquals("GET,HEAD,OPTIONS", environment
 				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.methods"));
+		assertEquals("INTERNAL_SERVER_ERROR", environment
+				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.statuses[0]"));
+		assertEquals("GATEWAY_TIMEOUT", environment
+				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.statuses[3]"));
+		assertEquals("50ms", environment
+				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.backoff.firstBackoff"));
 	}
 }
