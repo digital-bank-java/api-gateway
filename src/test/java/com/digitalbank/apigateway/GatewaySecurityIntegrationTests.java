@@ -20,7 +20,8 @@ import reactor.core.publisher.Mono;
 		"spring.config.import=",
 		"spring.cloud.config.enabled=false",
 		"gateway.security.enabled=true",
-		"auth.jwt.issuer=https://issuer.test" })
+		"auth.jwt.issuer=https://issuer.test",
+		"management.health.redis.enabled=false" })
 @Import(GatewaySecurityIntegrationTests.TestJwtConfiguration.class)
 class GatewaySecurityIntegrationTests {
 
