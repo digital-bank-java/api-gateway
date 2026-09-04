@@ -8,7 +8,7 @@ Spring Cloud Gateway entry point for the Digital Bank Java platform.
 - Route requests to internal services through Kubernetes Service DNS names.
 - Keep downstream services private inside the cluster for normal manual testing.
 - Host cross-cutting gateway policies such as route-level rate limits and downstream resilience.
-- Leave authentication, authorization, and correlation propagation to their planned security slices.
+- Propagate a bounded correlation ID and emit structured request-completion logs without logging sensitive request data.
 
 ## Non-Responsibilities
 
@@ -113,6 +113,12 @@ The centralized internal API documentation UI is available at:
 ```text
 http://localhost:8080/admin/docs/swagger-ui.html
 ```
+
+## Correlation And Request Logs
+
+Every gateway exchange receives an `X-Correlation-ID` response header. A caller-provided value is reused only when it starts with an ASCII letter or digit and contains at most 96 ASCII letters, digits, `.`, `_`, `:`, or `-` characters. Invalid, blank, or oversized values are replaced with a generated UUID. The same value is added to the downstream request so service logs can correlate the exchange.
+
+The gateway emits one ECS-formatted JSON completion event per exchange. It contains the service, environment, method, Gateway route ID, response status, correlation ID, duration, and reactive completion signal. Authorization headers, cookies, tokens, request bodies, account data, customer data, and payment data are deliberately excluded.
 
 ## Gateway Authorization And Environment Promotion
 
