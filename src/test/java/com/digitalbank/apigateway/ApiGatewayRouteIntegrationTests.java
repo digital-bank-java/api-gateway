@@ -46,8 +46,28 @@ class ApiGatewayRouteIntegrationTests {
 				.uri("/actuator/health")
 				.exchange()
 				.expectStatus().isOk()
+				.expectHeader().valueMatches(CorrelationIdWebFilter.CORRELATION_ID_HEADER,
+						"[A-Za-z0-9][A-Za-z0-9._:-]{0,95}")
 				.expectBody()
 				.jsonPath("$.status").isEqualTo("UP");
+	}
+
+	@Test
+	void validCorrelationIdIsReturnedAndInvalidValueIsReplaced() {
+		client.get()
+				.uri("/actuator/health")
+				.header(CorrelationIdWebFilter.CORRELATION_ID_HEADER, "insomnia-request-001")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().valueEquals(CorrelationIdWebFilter.CORRELATION_ID_HEADER, "insomnia-request-001");
+
+		client.get()
+				.uri("/actuator/health")
+				.header(CorrelationIdWebFilter.CORRELATION_ID_HEADER, "contains spaces")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().valueMatches(CorrelationIdWebFilter.CORRELATION_ID_HEADER,
+						"[A-Za-z0-9][A-Za-z0-9._:-]{0,95}");
 	}
 
 	@Test
@@ -112,5 +132,6 @@ class ApiGatewayRouteIntegrationTests {
 				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.statuses[3]"));
 		assertEquals("50ms", environment
 				.getProperty("spring.cloud.gateway.server.webflux.default-filters[0].args.backoff.firstBackoff"));
+		assertEquals("ecs", environment.getProperty("logging.structured.format.console"));
 	}
 }
