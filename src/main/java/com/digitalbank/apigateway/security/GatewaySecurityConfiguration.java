@@ -38,6 +38,8 @@ class GatewaySecurityConfiguration {
 								"/error",
 								"/api/v1/auth/login")
 							.permitAll()
+						.pathMatchers("/api/v1/auth/**")
+							.authenticated()
 						.pathMatchers(
 								"/admin/**",
 								"/v3/api-docs/swagger-config",
