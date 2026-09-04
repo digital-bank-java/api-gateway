@@ -15,7 +15,7 @@ Spring Cloud Gateway entry point for the Digital Bank Java platform.
 - Business-domain logic.
 - Persistence.
 - Service discovery through Eureka.
-- Authentication implementation in the initial slice.
+- Domain authentication and token issuance. The gateway validates bearer tokens and applies route-level authorization.
 
 ## Runtime Model
 
@@ -114,6 +114,21 @@ The centralized internal API documentation UI is available at:
 http://localhost:8080/admin/docs/swagger-ui.html
 ```
 
+## Gateway Authorization And Environment Promotion
+
+The gateway is an internal Kubernetes `ClusterIP` Service in SIT. When `gateway.security.enabled` is true, it validates JWTs and enforces these scopes:
+
+- `admin.internal` for `/admin/**` and centralized API documentation.
+- `mfa.internal` for `/api/v1/mfa/**`.
+- `transaction.internal` for `/internal/v1/transfer-workflows/**`.
+- `payment.internal` for `/internal/v1/payment-instructions/**`.
+
+Customer and account APIs require an authenticated token. Health endpoints and Auth login remain public. Requests that do not authenticate receive `401` Problem Details; authenticated requests without the required scope receive `403` Problem Details.
+
+SIT uses a base64-encoded HMAC secret supplied through the Kubernetes `auth-service-secrets` Secret. UAT and PROD should use the same application contract with an AWS-managed secret or an OIDC/JWK issuer; no token secret belongs in Git. The chart keeps security disabled by default outside an explicitly enabled environment.
+
+Circuit breaking and safe-read retries are independent availability controls. They do not replace service authorization, idempotency keys, transactional guarantees, or audit controls.
+
 ## Redis-backed Rate Limiting
 
 Public customer and account routes in SIT use the shared Redis service for route-level token-bucket limits. The current SIT policy allows 10 requested tokens per second with a burst capacity of 20 and one token per request. Requests that exceed the available bucket receive `429 Too Many Requests`.
@@ -128,7 +143,7 @@ The gateway applies a fail-closed policy to Redis rate-limit errors. Spring Clou
 
 ## Security And Environment Promotion
 
-The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking, safe-read retries, and Redis-backed rate limiting are implemented as cross-cutting availability controls. Authentication, authorization, and correlation propagation remain planned capabilities.
+The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking, safe-read retries, Redis-backed rate limiting, authentication, and authorization are cross-cutting controls. They do not replace service-level idempotency, transactional guarantees, or audit controls.
 
 ## Downstream Resilience
 

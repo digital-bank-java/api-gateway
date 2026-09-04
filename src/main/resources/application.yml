@@ -25,6 +25,8 @@ spring:
             response-timeout: ${gateway.resilience.timeout.response-timeout:2s}
 
 gateway:
+  security:
+    enabled: ${GATEWAY_SECURITY_ENABLED:false}
   rate-limit:
     trusted-proxies: []
   resilience:
@@ -45,6 +47,12 @@ gateway:
       wait-duration-in-open-state: 10s
       permitted-number-of-calls-in-half-open-state: 2
       automatic-transition-from-open-to-half-open-enabled: true
+
+auth:
+  jwt:
+    issuer: ${AUTH_JWT_ISSUER:}
+    secret: ${AUTH_JWT_SECRET:}
+    jwk-set-uri: ${AUTH_JWT_JWK_SET_URI:}
 
 resilience4j:
   circuitbreaker:

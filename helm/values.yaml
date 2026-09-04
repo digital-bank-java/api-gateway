@@ -12,6 +12,11 @@ runtime:
   profile: sit
   configServerUrl: http://config-server:8888
 
+security:
+  enabled: false
+  secretName: auth-service-secrets
+  secretKey: jwt-secret
+
 service:
   type: ClusterIP
   port: 8080
