@@ -36,7 +36,8 @@ import reactor.netty.http.server.HttpServer;
 		"gateway.resilience.circuit-breaker.sliding-window-size=2",
 		"gateway.resilience.circuit-breaker.failure-rate-threshold=50",
 		"gateway.resilience.timeout.connect-timeout=100",
-		"gateway.resilience.timeout.response-timeout=50ms" })
+		"gateway.resilience.timeout.response-timeout=50ms",
+		"management.health.redis.enabled=false" })
 @Import(GatewayResilienceIntegrationTests.TestRouteConfiguration.class)
 class GatewayResilienceIntegrationTests {
 

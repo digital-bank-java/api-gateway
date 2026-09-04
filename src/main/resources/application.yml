@@ -9,8 +9,17 @@ spring:
             - name: Retry
               args:
                 retries: ${gateway.resilience.retry.retries:2}
-                methods: GET
-                series: SERVER_ERROR
+                methods: GET,HEAD,OPTIONS
+                statuses:
+                  - INTERNAL_SERVER_ERROR
+                  - BAD_GATEWAY
+                  - SERVICE_UNAVAILABLE
+                  - GATEWAY_TIMEOUT
+                backoff:
+                  firstBackoff: ${gateway.resilience.retry.first-backoff:50ms}
+                  maxBackoff: ${gateway.resilience.retry.max-backoff:250ms}
+                  factor: ${gateway.resilience.retry.factor:2}
+                  basedOnPreviousValue: ${gateway.resilience.retry.based-on-previous-value:true}
           httpclient:
             connect-timeout: ${gateway.resilience.timeout.connect-timeout:1000}
             response-timeout: ${gateway.resilience.timeout.response-timeout:2s}
@@ -18,9 +27,15 @@ spring:
 gateway:
   security:
     enabled: ${GATEWAY_SECURITY_ENABLED:false}
+  rate-limit:
+    trusted-proxies: []
   resilience:
     retry:
       retries: 2
+      first-backoff: 50ms
+      max-backoff: 250ms
+      factor: 2
+      based-on-previous-value: true
     timeout:
       connect-timeout: 1000
       response-timeout: 2s
