@@ -14,7 +14,7 @@ Spring Cloud Gateway entry point for the Digital Bank Java platform.
 - Business-domain logic.
 - Persistence.
 - Service discovery through Eureka.
-- Authentication implementation in the initial slice.
+- Domain authentication and token issuance. The gateway validates bearer tokens and applies route-level authorization.
 
 ## Runtime Model
 
@@ -113,9 +113,20 @@ The centralized internal API documentation UI is available at:
 http://localhost:8080/admin/docs/swagger-ui.html
 ```
 
-## Security And Environment Promotion
+## Gateway Authorization And Environment Promotion
 
-The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Circuit breaking and safe-read retries are implemented as cross-cutting availability controls. Authentication, authorization, Redis-backed rate limiting, and correlation propagation remain planned capabilities.
+The gateway is an internal Kubernetes `ClusterIP` Service in SIT. When `gateway.security.enabled` is true, it validates JWTs and enforces these scopes:
+
+- `admin.internal` for `/admin/**` and centralized API documentation.
+- `mfa.internal` for `/api/v1/mfa/**`.
+- `transaction.internal` for `/internal/v1/transfer-workflows/**`.
+- `payment.internal` for `/internal/v1/payment-instructions/**`.
+
+Customer and account APIs require an authenticated token. Health endpoints and Auth login remain public. Requests that do not authenticate receive `401` Problem Details; authenticated requests without the required scope receive `403` Problem Details.
+
+SIT uses a base64-encoded HMAC secret supplied through the Kubernetes `auth-service-secrets` Secret. UAT and PROD should use the same application contract with an AWS-managed secret or an OIDC/JWK issuer; no token secret belongs in Git. The chart keeps security disabled by default outside an explicitly enabled environment.
+
+Circuit breaking and safe-read retries are independent availability controls. They do not replace service authorization, idempotency keys, transactional guarantees, or audit controls.
 
 ## Downstream Resilience
 

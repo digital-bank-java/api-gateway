@@ -37,6 +37,15 @@ spec:
               value: {{ .Values.runtime.configServerUrl | quote }}
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.runtime.profile | quote }}
+            - name: GATEWAY_SECURITY_ENABLED
+              value: {{ .Values.security.enabled | quote }}
+            {{- if .Values.security.enabled }}
+            - name: AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.secretName | quote }}
+                  key: {{ .Values.security.secretKey | quote }}
+            {{- end }}
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           ports:

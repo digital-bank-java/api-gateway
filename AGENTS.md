@@ -44,6 +44,8 @@ kubectl port-forward svc/api-gateway 8080:8080 -n digital-bank-sit
 
 - Centralized Swagger/OpenAPI access should be exposed here, not by telling users to hit each downstream service directly.
 - Admin documentation routes are internal tooling and should stay clearly separated from public customer APIs.
+- Gateway authorization is feature-flagged with `gateway.security.enabled`; SIT enables it through Helm and injects the JWT secret from Kubernetes Secret.
+- Keep JWT validation at the gateway aligned with downstream scopes: `admin.internal`, `mfa.internal`, `transaction.internal`, and `payment.internal`.
 
 ## Working Rules
 
