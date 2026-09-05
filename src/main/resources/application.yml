@@ -78,6 +78,10 @@ logging:
       console: ecs
 
 management:
+  tracing:
+    export:
+      zipkin:
+        enabled: ${ZIPKIN_TRACING_ENABLED:false}
   endpoints:
     web:
       exposure:
