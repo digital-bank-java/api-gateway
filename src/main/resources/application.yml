@@ -76,6 +76,17 @@ logging:
   structured:
     format:
       console: ecs
+    json:
+      rename:
+        service: ecs_service
+        correlation_id: ecs_correlation_id
+        traceId: ecs_trace_id
+        spanId: ecs_span_id
+        flat_service: service
+        flat_correlation_id: correlation_id
+        flat_trace_id: trace_id
+        flat_span_id: span_id
+      customizer: com.digitalbank.apigateway.FlatStructuredLoggingJsonMembersCustomizer
 
 management:
   tracing:
