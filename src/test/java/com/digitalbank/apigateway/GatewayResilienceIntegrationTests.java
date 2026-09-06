@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,7 +81,8 @@ class GatewayResilienceIntegrationTests {
 		client.get().uri("/gateway-test/server-error").exchange().expectStatus().is5xxServerError();
 
 		CircuitBreaker breaker = registry.circuitBreaker("gatewayDownstream-server-error-service");
-		assertEquals(CircuitBreaker.State.OPEN, breaker.getState());
+		Awaitility.await().atMost(Duration.ofSeconds(1))
+				.untilAsserted(() -> assertEquals(CircuitBreaker.State.OPEN, breaker.getState()));
 
 		client.get().uri("/gateway-test/server-error")
 				.exchange()

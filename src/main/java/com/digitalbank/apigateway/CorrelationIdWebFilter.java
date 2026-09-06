@@ -71,6 +71,7 @@ public final class CorrelationIdWebFilter implements WebFilter {
 				.addKeyValue("http.route", routeId)
 				.addKeyValue("http.response.status_code", status)
 				.addKeyValue("correlation.id", correlationId)
+				.addKeyValue("correlation_id", correlationId)
 				.addKeyValue("event.duration_ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt))
 				.addKeyValue("reactor.signal", signal)
 				.log("Gateway request completed");
