@@ -64,6 +64,15 @@ class GatewaySecurityIntegrationTests {
 	}
 
 	@Test
+	void transferRouteAcceptsTheCanonicalTransferScope() {
+		client.post()
+				.uri("/internal/v1/transfer-workflows")
+				.headers(headers -> headers.setBearerAuth("transfer-scope"))
+				.exchange()
+				.expectStatus().isNotFound();
+	}
+
+	@Test
 	void healthEndpointRemainsPublicWhenGatewaySecurityIsEnabled() {
 		client.get()
 				.uri("/actuator/health")
@@ -80,7 +89,7 @@ class GatewaySecurityIntegrationTests {
 		ReactiveJwtDecoder reactiveJwtDecoder() {
 			return token -> Mono.just(Jwt.withTokenValue(token)
 					.header("alg", "none")
-					.claim("scope", "wrong.scope")
+					.claim("scope", "transfer-scope".equals(token) ? "transfer.internal" : "wrong.scope")
 					.issuedAt(Instant.now())
 					.expiresAt(Instant.now().plusSeconds(300))
 					.build());
