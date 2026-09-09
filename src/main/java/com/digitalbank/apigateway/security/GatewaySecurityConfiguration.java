@@ -49,7 +49,7 @@ class GatewaySecurityConfiguration {
 						.pathMatchers("/api/v1/mfa/**")
 							.hasAuthority("SCOPE_mfa.internal")
 						.pathMatchers("/internal/v1/transfer-workflows", "/internal/v1/transfer-workflows/**")
-							.hasAuthority("SCOPE_transaction.internal")
+							.hasAuthority("SCOPE_transfer.internal")
 						.pathMatchers("/internal/v1/payment-instructions", "/internal/v1/payment-instructions/**")
 							.hasAuthority("SCOPE_payment.internal")
 						.pathMatchers("/api/v1/customers/**", "/api/v1/accounts/**")
