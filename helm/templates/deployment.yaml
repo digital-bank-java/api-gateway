@@ -46,6 +46,11 @@ spec:
                   name: {{ .Values.security.secretName | quote }}
                   key: {{ .Values.security.secretKey | quote }}
             {{- end }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.secretName | quote }}
+                  key: {{ .Values.redis.secretKey | quote }}
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           ports:
