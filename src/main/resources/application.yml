@@ -26,7 +26,8 @@ spring:
 
 gateway:
   security:
-    enabled: ${GATEWAY_SECURITY_ENABLED:false}
+    # Authentication is fail-closed. Tests that need the bypass must opt in.
+    enabled: ${GATEWAY_SECURITY_ENABLED:true}
   rate-limit:
     trusted-proxies: []
   resilience:

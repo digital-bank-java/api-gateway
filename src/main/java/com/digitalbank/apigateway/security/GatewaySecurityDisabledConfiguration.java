@@ -7,7 +7,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(name = "gateway.security.enabled", havingValue = "false", matchIfMissing = true)
+@ConditionalOnProperty(name = "gateway.security.enabled", havingValue = "false")
 class GatewaySecurityDisabledConfiguration {
 
 	@Bean
