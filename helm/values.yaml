@@ -17,6 +17,10 @@ security:
   secretName: auth-service-secrets
   secretKey: jwt-secret
 
+redis:
+  secretName: redis
+  secretKey: REDIS_PASSWORD
+
 service:
   type: ClusterIP
   port: 8080
