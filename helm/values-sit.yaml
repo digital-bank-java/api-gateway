@@ -4,3 +4,7 @@ runtime:
 
 security:
   enabled: true
+
+redis:
+  secretName: redis
+  secretKey: REDIS_PASSWORD
