@@ -124,12 +124,14 @@ The gateway emits one ECS-formatted JSON completion event per exchange. It conta
 
 The gateway is an internal Kubernetes `ClusterIP` Service in SIT. Authentication is enabled by default and validates JWTs before enforcing these scopes. A local test must explicitly set `GATEWAY_SECURITY_ENABLED=false` to use the bypass configuration; do not use that bypass in a deployed environment.
 
-- `admin.internal` for `/admin/**` and centralized API documentation.
+- `admin.internal` for `/admin/**`, centralized API documentation, and administrative access to customer/account resources.
+- `customer.self` for a customer profile whose UUID matches the JWT `sub` claim.
+- `account.self` for account resources owned by the customer UUID in the JWT `sub` claim.
 - `mfa.internal` for `/api/v1/mfa/**`.
 - `transfer.internal` for `/internal/v1/transfer-workflows/**`.
 - `payment.internal` for `/internal/v1/payment-instructions/**`.
 
-Customer and account APIs require an authenticated token. Health endpoints and Auth login remain public. Requests that do not authenticate receive `401` Problem Details; authenticated requests without the required scope receive `403` Problem Details.
+Customer and account APIs require an ownership scope, not merely an authenticated token. Health endpoints and Auth login remain public. Requests that do not authenticate receive `401` Problem Details; authenticated requests without the required scope or ownership receive `403` Problem Details. The current SIT fixture is the `transfer-orchestrator` administrative identity and retains `admin.internal`; subject-to-customer UUID mapping is a temporary boundary until a customer identity provider supplies explicit customer claims.
 
 SIT uses a base64-encoded HMAC secret supplied through the Kubernetes `auth-service-secrets` Secret. UAT and PROD should use the same application contract with an AWS-managed secret or an OIDC/JWK issuer; no token secret belongs in Git. The chart fails closed by default when an environment does not provide an explicit security override.
 
